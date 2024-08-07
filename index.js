@@ -1,6 +1,6 @@
 import express from "express";
-import csrf from "csurf";
 import cookieParser from "cookie-parser";
+import csrf from "csurf";
 import usuarioRouter from "./routes/usuarioRouter.js";
 import propiedadesRouter from "./routes/propiedadesRouter.js";
 import db from "./config/db.js";
