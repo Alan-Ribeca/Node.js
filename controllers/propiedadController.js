@@ -1,5 +1,5 @@
 import { validationResult } from "express-validator";
-import { Precio, Categoria, propiedad, Propiedad } from "../models/index.js";
+import { Precio, Categoria, Propiedad } from "../models/index.js";
 
 const admin = (req, res) => {
   res.render("propiedades/admin", {
