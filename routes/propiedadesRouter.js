@@ -4,8 +4,10 @@ import {
   admin,
   crear,
   guardarPropiedad,
+  agregarImagen,
 } from "../controllers/propiedadController.js";
 import protegerRuta from "../middleware/protegerRuta.js";
+import upload from "../middleware/subirImg.js";
 
 const router = express.Router();
 
@@ -33,5 +35,9 @@ router.post(
 
   guardarPropiedad
 );
+
+router.get("/propiedades/agregar-imagen/:id", protegerRuta, agregarImagen);
+
+router.post("/propiedades/agregar-imagen/:id", upload.single("imagen"));
 
 export default router;

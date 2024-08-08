@@ -17,7 +17,7 @@ const protegerRuta = async (req, res, next) => {
       decoded.id
     );
 
-    // almacenar el usuario al Req
+    // almacenar el usuario al Req (usuario va a estar dentro de todos los req (que tengamos con la funcion de protegerRuta))
     if (usuario) {
       req.usuario = usuario;
     } else {

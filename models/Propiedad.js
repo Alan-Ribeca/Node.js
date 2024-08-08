@@ -20,11 +20,11 @@ const Propiedad = bd.define("propiedades", {
     type: DataTypes.INTEGER,
     allowNull: false,
   },
-  estacionamiento: {
+  Estacionamiento: {
     type: DataTypes.INTEGER,
     allowNull: false,
   },
-  wc: {
+  WC: {
     type: DataTypes.INTEGER,
     allowNull: false,
   },
