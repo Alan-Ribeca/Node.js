@@ -18,4 +18,18 @@ Dropzone.options.imagen = {
     "CSRF-Token": token,
   },
   paramName: "imagen",
+  init: function () {
+    const dropzone = this;
+    const btnPublicar = document.querySelector("#publicar");
+
+    btnPublicar.addEventListener("click", function () {
+      dropzone.processQueue(); // Procesar la cola de archivos
+    });
+
+    dropzone.on("queuecomplete", function () {
+      if (dropzone.getActiveFiles().length === 0) {
+        window.location.href = "/mis-propiedades";
+      }
+    });
+  },
 };

@@ -1,9 +1,13 @@
 import { validationResult } from "express-validator";
 import { Precio, Categoria, Propiedad } from "../models/index.js";
 
-const admin = (req, res) => {
+const admin = async (req, res) => {
+  const { id } = req.usuario;
+  const propiedades = await Propiedad.findAll({ where: { usuarioId: id } });
+
   res.render("propiedades/admin", {
     pagina: "Mis propiedades",
+    propiedades,
   });
 };
 
@@ -114,4 +118,41 @@ const agregarImagen = async (req, res) => {
   });
 };
 
-export { admin, crear, guardarPropiedad, agregarImagen };
+const almacenarImagen = async (req, res, next) => {
+  const { id } = req.params;
+
+  // validar que la propiedad exista
+  const propiedad = await Propiedad.findByPk(id);
+
+  if (!propiedad) {
+    return res.redirect("/mis-propiedades");
+  }
+
+  //validar que la propiedad no esta publicada
+  if (propiedad.publicado) {
+    return res.redirect("/mis-propiedades");
+  }
+
+  // validar que la propiedad pertenece a quien visita la pag
+
+  if (req.usuario.id.toString() !== propiedad.usuarioId.toString()) {
+    return res.redirect("/mis-propiedades");
+  }
+
+  try {
+    //almacenar la imga y publica la propiedad (propiedad es como se llama la columna en la base de datos y imagen es como se llama una columna de la base de datos )
+    console.log(req.file);
+
+    propiedad.imagen = req.file.filename;
+
+    propiedad.publicado = 1;
+
+    await propiedad.save();
+
+    next();
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+export { admin, crear, guardarPropiedad, agregarImagen, almacenarImagen };
