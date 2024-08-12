@@ -3,26 +3,56 @@ import { validationResult } from "express-validator";
 import { Precio, Categoria, Propiedad } from "../models/index.js";
 
 const admin = async (req, res) => {
-  const { id } = req.usuario;
-  const propiedades = await Propiedad.findAll({
-    where: { usuarioId: id },
-    include: [
-      {
-        model: Categoria,
-        as: "categoria",
-      },
-      {
-        model: Precio,
-        as: "precio",
-      },
-    ],
-  });
+  //leer queryString
+  const { pagina: paginaAcutal } = req.query; //extraemos pagina y le asignamos el nombre de paginaActual para no confundir con pagina que esta en el render
 
-  res.render("propiedades/admin", {
-    pagina: "Mis propiedades",
-    propiedades,
-    csrfToken: req.csrfToken(),
-  });
+  const expresion = /^[1-9]$/;
+
+  if (!expresion.test(paginaAcutal)) {
+    return res.redirect("/mis-propiedades?pagina=1");
+  }
+
+  try {
+    const { id } = req.usuario;
+
+    //limites y offset para el paginador
+    const limit = 2;
+    const offset = paginaAcutal * limit - limit;
+
+    const [propiedades, total] = await Promise.all([
+      Propiedad.findAll({
+        limit,
+        offset,
+        where: { usuarioId: id },
+        include: [
+          {
+            model: Categoria,
+            as: "categoria",
+          },
+          {
+            model: Precio,
+            as: "precio",
+          },
+        ],
+      }),
+      Propiedad.count({
+        where: { usuarioId: id },
+      }),
+    ]);
+
+    res.render("propiedades/admin", {
+      pagina: "Mis propiedades",
+      propiedades,
+      csrfToken: req.csrfToken(),
+      paginas: Math.ceil(total / limit),
+      paginaAcutal: Number(paginaAcutal),
+      total,
+      offset,
+      limit,
+    });
+  } catch (error) {
+    console.error(error);
+  }
 };
 
 //formulario para crear una nueva propiedad
