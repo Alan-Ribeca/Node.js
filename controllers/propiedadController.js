@@ -1,13 +1,27 @@
+import { unlink } from "node:fs/promises";
 import { validationResult } from "express-validator";
 import { Precio, Categoria, Propiedad } from "../models/index.js";
 
 const admin = async (req, res) => {
   const { id } = req.usuario;
-  const propiedades = await Propiedad.findAll({ where: { usuarioId: id } });
+  const propiedades = await Propiedad.findAll({
+    where: { usuarioId: id },
+    include: [
+      {
+        model: Categoria,
+        as: "categoria",
+      },
+      {
+        model: Precio,
+        as: "precio",
+      },
+    ],
+  });
 
   res.render("propiedades/admin", {
     pagina: "Mis propiedades",
     propiedades,
+    csrfToken: req.csrfToken(),
   });
 };
 
@@ -50,7 +64,6 @@ const guardarPropiedad = async (req, res) => {
   }
 
   //crear la nueva propiedad
-
   const {
     titulo,
     descripcion,
@@ -155,4 +168,136 @@ const almacenarImagen = async (req, res, next) => {
   }
 };
 
-export { admin, crear, guardarPropiedad, agregarImagen, almacenarImagen };
+const editar = async (req, res) => {
+  const { id } = req.params;
+
+  //validar que la propiedad exista
+  const propiedad = await Propiedad.findByPk(id);
+
+  if (!propiedad) {
+    return res.redirect("/mis-propiedades");
+  }
+
+  //revisar que quien visita la URL es quien creeo la propiedad
+  if (propiedad.usuarioId.toString() !== req.usuario.id.toString()) {
+    return res.redirect("/mis-propiedades");
+  }
+
+  //consultar modelo de precio y categoria
+  const [categorias, precios] = await Promise.all([
+    Categoria.findAll(),
+    Precio.findAll(),
+  ]);
+
+  res.render("propiedades/editar", {
+    pagina: `Editar propiedad: ${propiedad.titulo}`,
+    csrfToken: req.csrfToken(),
+    categorias,
+    precios,
+    datos: propiedad,
+  });
+};
+
+const guardarCambios = async (req, res) => {
+  //verificar la validacion
+  let resultados = validationResult(req);
+
+  if (!resultados.isEmpty()) {
+    //consultar modelo de precio y categoria
+    const [categorias, precios] = await Promise.all([
+      Categoria.findAll(),
+      Precio.findAll(),
+    ]);
+
+    return res.render("propiedades/editar", {
+      pagina: "Editar propiedades",
+      csrfToken: req.csrfToken(),
+      categorias,
+      precios,
+      errores: resultados.array(), //mostrar los errores en el formulario
+      datos: req.body, // guardamos la ultima copia, que es la que va a tener el req.body
+    });
+  }
+
+  const { id } = req.params;
+
+  //validar que la propiedad exista
+  const propiedad = await Propiedad.findByPk(id);
+
+  if (!propiedad) {
+    return res.redirect("/mis-propiedades");
+  }
+
+  //revisar que quien visita la URL es quien creeo la propiedad
+  if (propiedad.usuarioId.toString() !== req.usuario.id.toString()) {
+    return res.redirect("/mis-propiedades");
+  }
+
+  //reescribir el objeto y actualizarlo
+  try {
+    const {
+      titulo,
+      descripcion,
+      habitaciones,
+      Estacionamiento,
+      WC,
+      calle,
+      lat,
+      lng,
+      precio: precioId,
+      categoria: categoriaId,
+    } = req.body;
+
+    propiedad.set({
+      titulo,
+      descripcion,
+      habitaciones,
+      Estacionamiento,
+      WC,
+      calle,
+      lat,
+      lng,
+      precioId,
+      categoriaId,
+    });
+
+    await propiedad.save();
+    res.redirect("/mis-propiedades");
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+const eliminar = async (req, res) => {
+  const { id } = req.params;
+
+  //validar que la propiedad exista
+  const propiedad = await Propiedad.findByPk(id);
+
+  if (!propiedad) {
+    return res.redirect("/mis-propiedades");
+  }
+
+  //revisar que quien visita la URL es quien creeo la propiedad
+  if (propiedad.usuarioId.toString() !== req.usuario.id.toString()) {
+    return res.redirect("/mis-propiedades");
+  }
+
+  //eliminar la img asociada a la propiedad
+  await unlink(`public/uploads/${propiedad.imagen}`);
+
+  // elimar la propiedad
+  await propiedad.destroy();
+  res.redirect("/mis-propiedades");
+};
+
+export {
+  admin,
+  crear,
+  guardarPropiedad,
+  agregarImagen,
+  almacenarImagen,
+  editar,
+  guardarCambios,
+  eliminar,
+};
