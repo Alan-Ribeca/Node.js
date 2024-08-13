@@ -4,6 +4,7 @@ import csrf from "csurf";
 import usuarioRouter from "./routes/usuarioRouter.js";
 import propiedadesRouter from "./routes/propiedadesRouter.js";
 import appRouter from "./routes/appRouter.js";
+import apiRouter from "./routes/apiRoutes.js";
 import db from "./config/db.js";
 
 //crear la app
@@ -38,6 +39,7 @@ app.use(express.static("public"));
 app.use("/", appRouter);
 app.use("/auth", usuarioRouter);
 app.use("/", propiedadesRouter);
+app.use("/api", apiRouter);
 
 //definir un puerto y arrancar el proyecto
 const port = process.env.PORT || 3000;
