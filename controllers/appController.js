@@ -1,3 +1,4 @@
+import { Sequelize } from "sequelize";
 import { Precio, Categoria, Propiedad } from "../models/index.js";
 
 const inicio = async (req, res) => {
@@ -38,6 +39,7 @@ const inicio = async (req, res) => {
     precios,
     casas,
     departamentos,
+    csrfToken: req.csrfToken(),
   });
 };
 
@@ -66,15 +68,45 @@ const categoria = async (req, res) => {
   res.render("categoria", {
     pagina: `${categoria.nombre}s en venta`,
     propiedades,
+    csrfToken: req.csrfToken(),
   });
 };
 
 const noEncontrado = (req, res) => {
   res.render("404", {
     pagina: "Página no encontrada",
+    csrfToken: req.csrfToken(),
   });
 };
 
-const buscador = (req, res) => {};
+const buscador = async (req, res) => {
+  const { termino } = req.body;
+
+  //validar que termino no este vacio
+  if (!termino.trim()) {
+    return res.redirect("back");
+  }
+
+  // consultar las propiedades
+  const propiedades = await Propiedad.findAll({
+    where: {
+      titulo: {
+        [Sequelize.Op.like]: "%" + termino + "%",
+      },
+    },
+    include: [
+      {
+        model: Precio,
+        as: "precio",
+      },
+    ],
+  });
+
+  res.render("busqueda", {
+    pagina: "Resultados de la busqueda",
+    propiedades,
+    csrfToken: req.csrfToken(),
+  });
+};
 
 export { inicio, categoria, noEncontrado, buscador };
