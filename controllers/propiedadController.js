@@ -1,7 +1,7 @@
 import { unlink } from "node:fs/promises";
 import { validationResult } from "express-validator";
-import { Precio, Categoria, Propiedad } from "../models/index.js";
-
+import { Precio, Categoria, Propiedad, Mensaje } from "../models/index.js";
+import { esVendedor } from "../helpers/index.js";
 const admin = async (req, res) => {
   //leer queryString
   const { pagina: paginaAcutal } = req.query; //extraemos pagina y le asignamos el nombre de paginaActual para no confundir con pagina que esta en el render
@@ -349,6 +349,70 @@ const mostrarPropiedad = async (req, res) => {
     pagina: propiedad.titulo,
     csrfToken: req.csrfToken(),
     usuario: req.usuario,
+    esVendedor: esVendedor(req.usuario?.id, propiedad.usuarioId),
+  });
+};
+
+const enviarMensaje = async (req, res) => {
+  const { id } = req.params;
+
+  //validar que la propiedad exista
+  const propiedad = await Propiedad.findByPk(id, {
+    include: [
+      {
+        model: Categoria,
+        as: "categoria",
+      },
+      {
+        model: Precio,
+        as: "precio",
+      },
+    ],
+  });
+
+  if (!propiedad) {
+    return res.redirect("/404");
+  }
+
+  //reenderizar los errores en caso de tenerlos
+  //validar los campos (que vienen desde propiedadesRouter.js)
+  let resultados = validationResult(req);
+
+  if (!resultados.isEmpty()) {
+    return res.render("propiedades/mostrar", {
+      propiedad,
+      pagina: propiedad.titulo,
+      csrfToken: req.csrfToken(),
+      usuario: req.usuario,
+      esVendedor: esVendedor(req.usuario?.id, propiedad.usuarioId),
+      errores: resultados.array(), //mostrar los errores en el formulario
+    });
+  }
+
+  // console.log(req.body); //extraemos el mensaje
+  // console.log(req.params); //extraemos la propiedad que se escribio el ms
+  // console.log(req.usuario); //extraemos el id del usuario que envio el ms
+
+  const { mensaje } = req.body;
+  const { id: propiedadId } = req.params;
+  const { id: usuarioId } = req.usuario;
+
+  //alamcenar el mensaje en la bd
+  await Mensaje.create({
+    mensaje,
+    propiedadId,
+    usuarioId,
+  });
+
+  res.redirect("/");
+
+  res.render("propiedades/mostrar", {
+    propiedad,
+    pagina: propiedad.titulo,
+    csrfToken: req.csrfToken(),
+    usuario: req.usuario,
+    esVendedor: esVendedor(req.usuario?.id, propiedad.usuarioId),
+    enviado: true,
   });
 };
 
@@ -362,4 +426,5 @@ export {
   guardarCambios,
   eliminar,
   mostrarPropiedad,
+  enviarMensaje,
 };
