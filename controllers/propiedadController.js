@@ -1,7 +1,13 @@
 import { unlink } from "node:fs/promises";
 import { validationResult } from "express-validator";
-import { Precio, Categoria, Propiedad, Mensaje } from "../models/index.js";
-import { esVendedor } from "../helpers/index.js";
+import {
+  Precio,
+  Categoria,
+  Propiedad,
+  Mensaje,
+  Usuario,
+} from "../models/index.js";
+import { esVendedor, formatearFecha } from "../helpers/index.js";
 const admin = async (req, res) => {
   //leer queryString
   const { pagina: paginaAcutal } = req.query; //extraemos pagina y le asignamos el nombre de paginaActual para no confundir con pagina que esta en el render
@@ -32,6 +38,10 @@ const admin = async (req, res) => {
           {
             model: Precio,
             as: "precio",
+          },
+          {
+            model: Mensaje,
+            as: "mensajes",
           },
         ],
       }),
@@ -416,6 +426,37 @@ const enviarMensaje = async (req, res) => {
   });
 };
 
+//leer mensajes recibidos
+const verMensajes = async (req, res) => {
+  const { id } = req.params;
+
+  //validar que la propiedad exista
+  const propiedad = await Propiedad.findByPk(id, {
+    include: [
+      {
+        model: Mensaje,
+        as: "mensajes",
+        include: [{ model: Usuario.scope("eliminarPassword"), as: "usuario" }],
+      },
+    ],
+  });
+
+  if (!propiedad) {
+    return res.redirect("/mis-propiedades");
+  }
+
+  //revisar que quien visita la URL es quien creeo la propiedad
+  if (propiedad.usuarioId.toString() !== req.usuario.id.toString()) {
+    return res.redirect("/mis-propiedades");
+  }
+
+  res.render("propiedades/mensajes", {
+    pagina: "Mensajes",
+    mensajes: propiedad.mensajes,
+    formatearFecha,
+  });
+};
+
 export {
   admin,
   crear,
@@ -427,4 +468,5 @@ export {
   eliminar,
   mostrarPropiedad,
   enviarMensaje,
+  verMensajes,
 };
