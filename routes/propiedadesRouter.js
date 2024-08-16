@@ -9,6 +9,7 @@ import {
   editar,
   guardarCambios,
   eliminar,
+  cambiarEstado,
   mostrarPropiedad,
   enviarMensaje,
   verMensajes,
@@ -80,6 +81,8 @@ router.post(
 );
 
 router.post("/propiedades/eliminar/:id", protegerRuta, eliminar);
+
+router.put("/propiedades/:id", protegerRuta, cambiarEstado);
 
 //area publica
 router.get("/propiedad/:id", identificarUsuario, mostrarPropiedad);
